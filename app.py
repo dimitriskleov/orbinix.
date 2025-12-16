@@ -7,17 +7,17 @@ import asyncio
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Discord bot
+# Initialize the bot (without running it immediately)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Bot event when it's ready
+# Event when the bot is ready
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
 
-# Example command
+# Example command for the bot
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
@@ -27,20 +27,21 @@ async def run_bot():
     token = os.getenv("DISCORD_TOKEN")
     await bot.start(token)
 
-# A simple index route
+# A simple route to test the Flask app
 @app.route('/')
 def index():
     return jsonify({"message": "Welcome to your Flask app!"})
 
-# Handler to be used by Vercel (serverless function)
+# Vercel's handler function (this is what Vercel expects)
 def handler(request):
-    # Setup a new event loop to run the bot
+    # Setup new event loop for running bot asynchronously
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    # Run the bot asynchronously and handle the request
+
+    # Run bot during the HTTP request
     loop.run_until_complete(run_bot())
 
-    # Handle the HTTP request using Flask's request context
+    # Handle the Flask request
     with app.request_context(request):
         response = app.full_dispatch_request()
     return response
