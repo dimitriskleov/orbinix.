@@ -1,39 +1,42 @@
 import os
-from flask import Flask, jsonify
 import discord
 from discord.ext import commands
-import threading
+from flask import Flask, jsonify
 
-# Flask App setup
+# Initialize Flask app
 app = Flask(__name__)
 
-# Discord Bot setup
+# Initialize Discord bot
 intents = discord.Intents.default()
 intents.message_content = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Bot event for on_ready
+# Bot event for when it's ready
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
 
-# Example Discord Bot Command
+# Simple ping command for the bot
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
 
-# This function runs the bot
-def run_bot():
+# Function to start the bot within a serverless request context
+async def run_bot():
     token = os.getenv("DISCORD_TOKEN")
-    bot.run(token)
+    await bot.start(token)
 
-# Flask route to trigger when someone visits the page
+# Vercel serverless function to handle requests and run the bot
 @app.route('/')
 def index():
-    return jsonify({"message": "Welcome to the Flask and Discord Bot integration!"})
+    # Start the bot for this request (use async/await)
+    from asyncio import run
+    run(run_bot())  # Run the bot asynchronously
+    return jsonify({"message": "Bot is now running and online!"})
 
-if __name__ == '__main__':
-    # Run the Discord bot in a separate thread
-    threading.Thread(target=run_bot).start()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# Vercel expects the handler function, not `app.run()`
+def handler(request):
+    # Call the Flask app's request handling
+    with app.request_context(request):
+        response = app.full_dispatch_request()
+    return response
