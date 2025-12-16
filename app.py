@@ -3,11 +3,12 @@ import discord
 from discord.ext import commands
 from flask import Flask, jsonify
 import asyncio
+import threading
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize the bot (without running it immediately)
+# Initialize Discord bot
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -32,13 +33,11 @@ async def run_bot():
 def index():
     return jsonify({"message": "Welcome to your Flask app!"})
 
-# Vercel's handler function (this is what Vercel expects)
+# The function that handles the serverless request and runs the bot
 def handler(request):
-    # Setup new event loop for running bot asynchronously
+    # Start the bot asynchronously for this request
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    # Run bot during the HTTP request
     loop.run_until_complete(run_bot())
 
     # Handle the Flask request
